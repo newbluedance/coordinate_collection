@@ -66,9 +66,7 @@ public class WjFrame {
                     File file = selectFilesAndDir();
                     if (file != null) {
                         this.getJp().setCurImg(file.getAbsoluteFile().toString().replace("\\", "\\\\"));
-                        this.getJp().setLineId(0);
-                        this.getJp().setPointId(0);
-                        this.getJp().setPointInfoList(new ArrayList<>());
+                        this.getJp().setCollect(new PointCollect());
                         this.getJp().repaint();
                     }
                 }
@@ -76,16 +74,23 @@ public class WjFrame {
                 if ((kE.getKeyCode() == 83)
                     && (((InputEvent) event)
                     .isControlDown())) {
-                    outFile(JSONObject.toJSON(this.getJp().getPointInfoList()).toString());
+                    outFile(JSONObject.toJSON(this.getJp().getCollect().getPointInfoList()).toString());
+                }
+                System.out.println(kE.getKeyCode());
+
+                if ((kE.getKeyCode() == 90)
+                    && (((InputEvent) event)
+                    .isControlDown())) {
+                    this.getJp().getCollect().removeOne();
+                    this.getJp().repaint();
                 }
             }
             if (event.getClass() == KeyEvent.class && event.getID() == KeyEvent.KEY_RELEASED) {
                 KeyEvent kE = ((KeyEvent) event);
-                System.out.println(kE.getKeyCode());
                 if (kE.getKeyCode() == 16) {
                     if (this.getJp().isShiftDown()) {
                         this.getJp().setOrderNum(0);
-                        this.getJp().setLineId(this.getJp().getLineId() + 1);
+                        this.getJp().getCollect().setNextLineId(this.getJp().getCollect().getNextLineId() + 1);
                     }
                     this.getJp().setShiftDown(false);
                 }

@@ -30,22 +30,15 @@ public class WjRightPanel extends JPanel implements MouseListener, MouseMotionLi
     /** 背景图 */
     private static ImageIcon BACK_GROUND_ICON = new ImageIcon(
         WjRightPanel.class.getResource("/imgs/wj_background.png"));
-    private static ImageIcon POINT_SELECT_ICON = new ImageIcon(
-        WjRightPanel.class.getResource("/imgs/point/bdz_35_select.png"));
-    private static ImageIcon LINE_SELECT_ICON = new ImageIcon(WjRightPanel.class.getResource("/imgs/point/bdz_35.png"));
 
-    private int pointId;
-    private int lineId=1;
+
     private Integer curX;
     private Integer curY;
     private int orderNum = 0;
     private boolean shiftDown = false;
 
-    //当前画布持有的设备点
-    private List<PointInfo> pointInfoList = new ArrayList<>();
-
-    //当前画布持有的设备点
-    private List<PointInfo> lineInfoList = new ArrayList<>();
+    /** 当前画布持有的设备点 */
+    private PointCollect collect=new PointCollect();
 
     PointInfo curXP;
     PointInfo curYP;
@@ -66,40 +59,20 @@ public class WjRightPanel extends JPanel implements MouseListener, MouseMotionLi
         //调用的super.paint(g),让父类做一些事前的工作，如刷新屏幕
         super.paint(g);
         Graphics2D g2d = (Graphics2D) g;
-        drawPoints(g2d);
+        collect.drawPoints(g2d);
     }
 
-    /**
-     * 绘制设备点
-     *
-     * @param g2d g2d
-     */
-    private void drawPoints(Graphics2D g2d) {
-        g2d.setColor(Color.ORANGE);
-        for (PointInfo p : pointInfoList) {
-            g2d.drawImage(POINT_SELECT_ICON.getImage(), p.getX() - 8, p.getY() - 8, 16, 16, this);
-            g2d.drawString(p.getId().toString(), p.getX(), p.getY() - 20);
-        }
-
-        for (int i = 0; i < lineInfoList.size(); i++) {
-            g2d.drawImage(LINE_SELECT_ICON.getImage(), lineInfoList.get(i).getX() - 8, lineInfoList.get(i).getY() - 8, 16, 16, this);
-            if(i>0 && lineInfoList.get(i).getId().equals(lineInfoList.get(i-1).getId())){
-                g2d.setColor(Color.BLUE);
-                g2d.drawLine(lineInfoList.get(i-1).getX(),lineInfoList.get(i-1).getY(),lineInfoList.get(i).getX(),lineInfoList.get(i).getY());
-                g2d.drawString(lineInfoList.get(i).getId().toString(),(lineInfoList.get(i-1).getX()+lineInfoList.get(i).getX())/2, (lineInfoList.get(i-1).getY()+lineInfoList.get(i).getY())/2);
-            }
-        }
-
-    }
 
 
     @Override
     public void mouseClicked(MouseEvent e) {
-        int x = e.getX();
-        int y = e.getY();
+
         //获取组件绘图环境
         Graphics g = getGraphics();
         g.setColor(Color.ORANGE);
+
+        int x = e.getX();
+        int y = e.getY();
         //判断是否是鼠标左键
         if (curX != null) {
             x = curX;
@@ -107,49 +80,29 @@ public class WjRightPanel extends JPanel implements MouseListener, MouseMotionLi
         if (curY != null) {
             y = curY;
         }
+
         if (e.isMetaDown() && e.isShiftDown()) {
             shiftDown=true;
             orderNum++;
-            System.out.println("Line" + (lineId) + " :X:" + x + "Y:" + y+ "num:" + orderNum);
-            lineInfoList.add(new PointInfo(lineId, x, y, orderNum));
-            g.drawImage(LINE_SELECT_ICON.getImage(), x - 8, y - 8, 16, 16, this);
+            PointInfo newLinePoint = new PointInfo(collect.getNextLineId(), x, y, orderNum);
+            System.out.println("Line" + newLinePoint);
+            collect.addLinePoint(newLinePoint);
+            PointCollect.drawLinePoint(g,x,y);
 
         } else if (!e.isMetaDown()) {
 
-            pointId++;
-            System.out.println("Point" + (pointId) + " X:" + x + "Y:" + y);
-            pointInfoList.add(new PointInfo(pointId, x, y, null));
-            g.drawImage(POINT_SELECT_ICON.getImage(), x - 8, y - 8, 16, 16, this);
-            g.drawString(String.valueOf(pointId), x, y - 20);
+            PointInfo newPoint = new PointInfo(collect.getNextPointId(), x, y, null);
+            g.drawString(String.valueOf(collect.getNextPointId()), x, y - 20);
+            System.out.println("Point" +newPoint);
+            collect.addPoint(newPoint);
+            PointCollect.drawPoint(g,x,y);
         }
         g.dispose();
 
 
     }
 
-    @Override
-    public void mousePressed(MouseEvent e) {
-    }
 
-    @Override
-    public void mouseReleased(MouseEvent e) {
-
-    }
-
-    @Override
-    public void mouseEntered(MouseEvent e) {
-
-    }
-
-    @Override
-    public void mouseExited(MouseEvent e) {
-
-    }
-
-    @Override
-    public void mouseDragged(MouseEvent e) {
-
-    }
 
     @Override
     public void mouseMoved(MouseEvent e) {
@@ -171,17 +124,14 @@ public class WjRightPanel extends JPanel implements MouseListener, MouseMotionLi
 
         boolean has = false;
 
-        List<PointInfo> all=new ArrayList<>();
-        all.addAll(pointInfoList);
-        all.addAll(lineInfoList);
-
-        for (PointInfo p : all) {
+        for (PointInfo p : collect.getHisPoint()) {
             if (compareCop(p.getX(), e.getX())) {
                 start.setLocation(p.getX(), p.getY());
                 g.drawLine(start.x, start.y, start.x, e.getY());
                 curX = start.x;
                 has = true;
-            } else if (compareCop(p.getY(), e.getY())) {
+            }
+            if (compareCop(p.getY(), e.getY())) {
                 start.setLocation(p.getX(), p.getY());
                 g.drawLine(start.x, start.y, e.getX(), start.y);
                 curY = start.y;
@@ -218,6 +168,32 @@ public class WjRightPanel extends JPanel implements MouseListener, MouseMotionLi
             g.drawImage(imageIcon.getImage(), 0, 0, this.getWidth(), this.getHeight(), this);
 
         }
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+
+    }
+
+
+    @Override
+    public void mouseDragged(MouseEvent e) {
+
     }
 
 
